@@ -16,21 +16,21 @@ jobs:
   render:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           path: values
       # Chart versions of infra components are pinned in the root repository's ApplicationSet.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           repository: ailves2009/poc-eks-gitops-root
           ref: master
           path: root
 
-      - uses: azure/setup-helm@v4
+      - uses: azure/setup-helm@v5
         with:
           version: ${{ env.HELM_VERSION }}
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
