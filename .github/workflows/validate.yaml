@@ -1,0 +1,46 @@
+name: validate
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+env:
+  HELM_VERSION: v3.16.2
+  KUBECONFORM_VERSION: v0.6.7
+
+jobs:
+  render:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: values
+      # Chart versions of infra components are pinned in the root repository's ApplicationSet.
+      - uses: actions/checkout@v4
+        with:
+          repository: ailves2009/poc-eks-gitops-root
+          ref: master
+          path: root
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install tools (pinned)
+        run: |
+          pip install pyyaml==6.0.2
+          curl -fsSL "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" \
+            | tar xz -C /usr/local/bin kubeconform
+
+      # Every service file rendered with the chart tag it names, the same layering as Argo CD,
+      # through the chart's values.schema.json, then kubeconform -strict.
+      - name: Render and validate every service and infra component
+        run: python3 values/scripts/render_all.py values root

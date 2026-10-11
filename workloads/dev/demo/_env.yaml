@@ -1,0 +1,6 @@
+# Landscape values shared by every service of the `demo` application in `dev`.
+#
+# NOT A SERVICE FILE. The workloads ApplicationSet excludes `_env.yaml` from its git files
+# generator and passes it to every Application of this directory as a fixed valueFiles slot.
+global:
+  environment: dev

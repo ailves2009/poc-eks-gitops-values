@@ -1,0 +1,17 @@
+# keepwarm in dev: ~1 RPS against nginx so `kubectl top` shows non-zero metrics.
+# Well below the HPA threshold -- it does not trigger scaling. No nodeSelector: it runs
+# wherever there is room (usually the bootstrap node group).
+
+chart:
+  path: charts/demo-apps
+  revision: demo-apps-v1.0.0
+
+applications:
+  keepwarm:
+    image:
+      repository: docker.io/library/busybox
+      tag: "1.38.0"
+      digest: sha256:fd7dc98638c8e305f4dc34e979f1c0fdfdcaeb0fbf8fcff77ae834b6da3d7e6e
+    # The target is environment data: the nginx Service in this namespace.
+    args:
+      - while sleep 1; do wget -q -O- http://nginx.demo-dev.svc.cluster.local > /dev/null; done

@@ -1,0 +1,16 @@
+# metrics-server on poc-plt-eks (chart kubernetes-sigs/metrics-server; the version is pinned
+# in the infra ApplicationSet of poc-eks-gitops-root). Required by HPA and `kubectl top`.
+
+# EKS kubelets serve a certificate signed by the cluster CA, which metrics-server does not
+# ship, so TLS verification fails. --kubelet-insecure-tls skips it (in-VPC traffic only);
+# a hardened setup would mount the cluster CA instead.
+args:
+  - --kubelet-insecure-tls
+  - --kubelet-preferred-address-types=InternalIP,Hostname
+  - --kubelet-use-node-status-port
+  - --metric-resolution=15s
+
+# Always-on bootstrap node group, not ephemeral Karpenter nodes: no metrics-server
+# migrations on every consolidation.
+nodeSelector:
+  node-role: bootstrap

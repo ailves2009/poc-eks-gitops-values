@@ -1,0 +1,44 @@
+# nginx in dev. One service file = one Argo CD Application (demo-dev-nginx, namespace demo-dev).
+
+# Read by the ApplicationSet, ignored by the templates: which chart renders this service and
+# at which git tag. Bumping `revision` here rolls the new chart out to this service only.
+chart:
+  path: charts/demo-apps
+  revision: demo-apps-v1.0.0
+
+applications:
+  nginx:
+    # Official nginx, unprivileged variant. Tag for humans, digest for the kubelet
+    # (multi-arch index: arm64 + amd64, so Karpenter may pick either).
+    image:
+      repository: docker.io/nginxinc/nginx-unprivileged
+      tag: 1.30.5-alpine
+      digest: sha256:15c994d10d6d78658721c3bcafff14cb281fba2a4bdf9d5ba92c416a472516e3
+
+    # The bootstrap node group carries no capacity-type label, so this pins the pods to
+    # Karpenter-launched spot nodes -- the point of the demo.
+    nodeSelector:
+      karpenter.sh/capacity-type: spot
+    topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: ScheduleAnyway
+
+    # HPA on average CPU vs requests.cpu (500m from the chart shape): 50% = 250m per pod.
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPU: 50
+
+    # Public ALB, HTTP only (no ACM certificate in this POC). The domain is a placeholder;
+    # test with: curl --resolve <host>:80:<ALB-IP> http://<host>/
+    ingress:
+      enabled: true
+      className: alb
+      host: nginx.poc-eks-karpenter.domain.xyz
+      annotations:
+        alb.ingress.kubernetes.io/scheme: internet-facing
+        alb.ingress.kubernetes.io/target-type: ip
+        alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
+        alb.ingress.kubernetes.io/healthcheck-path: /
